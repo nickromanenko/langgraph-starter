@@ -1,8 +1,8 @@
 import 'dotenv/config';
 
-import { AIMessage, BaseMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
-import { Annotation, END, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
+import { Annotation, END, MemorySaver, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -67,10 +67,20 @@ const workflow = new StateGraph(StateAnnotation)
     .addConditionalEdges('agent', routeModelOutput, ['tools', END])
     .addEdge('tools', 'agent');
 
-export const graph = workflow.compile();
+const checkpointer = new MemorySaver();
+export const graph = workflow.compile({ checkpointer });
 
-// const finalState = await graph.invoke({ messages: [new HumanMessage('what part of the day is now?')] });
+const finalState = await graph.invoke(
+    { messages: [new HumanMessage('What part of the day is it now?')] },
+    {
+        configurable: {
+            thread_id: '1',
+        },
+    },
+);
 
 // await saveGraphPic(graph);
+console.log(finalState.messages[finalState.messages.length - 1].content);
 
-// console.log(finalState.messages[finalState.messages.length - 1].content);
+const nextState = await graph.invoke({ messages: [new HumanMessage('Recommend me a song about it')] }, { configurable: { thread_id: '1' } });
+console.log(nextState.messages[nextState.messages.length - 1].content);
