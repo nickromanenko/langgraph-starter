@@ -1,0 +1,31 @@
+{
+    "extends": "ts-node/node16/tsconfig.json",
+    "ts-node": {
+        "transpileOnly": true,
+        "esm": true,
+        "files": true,
+        "compilerOptions": {
+            "target": "es2022",
+            "module": "ESNext"
+        }
+    },
+    "compilerOptions": {
+        "outDir": "dist",
+        "lib": ["ES2021", "ES2022.Object", "DOM"],
+        "target": "es2022",
+        "module": "ESNext",
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": "./src",
+        "declaration": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUnusedParameters": true,
+        "useDefineForClassFields": true,
+        "strictPropertyInitialization": false,
+        "moduleResolution": "Node"
+    },
+    "exclude": ["node_modules/", "dist/", "tests/"],
+    "include": ["./src", "agent.ts"]
+}
