@@ -1,10 +1,11 @@
 import 'dotenv/config';
 
-import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
-import { Annotation, END, MemorySaver, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
+import { Annotation, END, MemorySaver, START, StateGraph } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
+import { saveGraphPic } from 'utils';
 
 // Define the graph state
 // See here for more info: https://langchain-ai.github.io/langgraphjs/how-tos/define-state/
@@ -36,54 +37,65 @@ const timeTool = tool(
 );
 
 const tools = [timeTool];
+const toolNode = new ToolNode(tools);
 
 const model = new ChatOpenAI({
     model: 'gpt-4o-mini',
 }).bindTools(tools);
 
-const toolNode = new ToolNode(tools);
-
 async function callModel(state: typeof StateAnnotation.State) {
     const messages = state.messages;
     const response = await model.invoke(messages.slice(-10));
-
     return { messages: [response] };
 }
 
-function routeModelOutput(state: typeof MessagesAnnotation.State) {
+function routeModelOutput(state: typeof StateAnnotation.State) {
     const messages = state.messages;
     const lastMessage: AIMessage = messages[messages.length - 1];
-
-    if ((lastMessage?.tool_calls?.length ?? 0) > 0) {
-        return 'tools';
+    if (lastMessage && !lastMessage.tool_calls?.length) {
+        return END;
     }
-    return END;
+    return 'tools';
+}
+
+function askHuman(state: typeof StateAnnotation.State): Partial<typeof StateAnnotation.State> {
+    return state;
 }
 
 const workflow = new StateGraph(StateAnnotation)
     .addNode('agent', callModel)
     .addNode('tools', toolNode)
-    .addEdge('__start__', 'agent')
+    .addNode('askHuman', askHuman)
+    .addEdge(START, 'askHuman')
+    .addEdge('askHuman', 'agent')
     .addConditionalEdges('agent', routeModelOutput, ['tools', END])
     .addEdge('tools', 'agent');
 
 const checkpointer = new MemorySaver();
+export const graph = workflow.compile({ checkpointer, interruptBefore: ['askHuman'] });
 
-export const graph = workflow.compile({ checkpointer });
-
-const finalState = await graph.invoke(
-    { messages: [new HumanMessage('What part of day is it now?')] },
-    {
-        configurable: {
-            thread_id: '8',
-        },
+const input = { messages: [{ role: 'user', content: 'What part of the day is it now?' }] };
+const config: any = {
+    streamMode: 'values',
+    configurable: {
+        thread_id: '11',
     },
-);
+};
 
-// await saveGraphPic(graph);
-console.log('User:', finalState.messages[finalState.messages.length - 2].content);
-console.log('Agent:', finalState.messages[finalState.messages.length - 1].content);
+for await (const chunk of await graph.stream(input, config)) {
+    const recentMsg = chunk.messages[chunk.messages.length - 1];
+    console.log('[-]', recentMsg.content);
+}
 
-const nextState = await graph.invoke({ messages: [new HumanMessage('Recommend me a song about it')] }, { configurable: { thread_id: '8' } });
-console.log('User:', nextState.messages[nextState.messages.length - 2].content);
-console.log('Agent:', nextState.messages[nextState.messages.length - 1].content);
+console.log('==Interrupted===');
+
+const userInput = 'What part of the day is it now? Recommend me a song about it';
+
+await graph.updateState(config, { messages: [{ role: 'user', content: userInput }] }, 'askHuman');
+
+for await (const chunk of await graph.stream(null, config)) {
+    const recentMsg = chunk.messages[chunk.messages.length - 1];
+    console.log('[-]', recentMsg.content);
+}
+
+await saveGraphPic(graph);
