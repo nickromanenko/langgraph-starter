@@ -46,7 +46,7 @@ const toolNode = new ToolNode(tools);
 
 async function callModel(state: typeof StateAnnotation.State) {
     const messages = state.messages;
-    const response = await model.invoke(messages);
+    const response = await model.invoke(messages.slice(-10));
 
     return { messages: [response] };
 }
@@ -71,13 +71,14 @@ const workflow = new StateGraph(StateAnnotation)
 const checkpointer = PostgresSaver.fromConnString('postgres://postgres:postgres@localhost:5432/langchain');
 // You must call .setup() the first time you use the checkpointer:
 // await checkpointer.setup();
+
 export const graph = workflow.compile({ checkpointer });
 
 const finalState = await graph.invoke(
-    { messages: [new HumanMessage('OK, recommend me another song about it')] },
+    { messages: [new HumanMessage('My name is Nick')] },
     {
         configurable: {
-            thread_id: '1',
+            thread_id: '2',
         },
     },
 );
@@ -85,5 +86,5 @@ const finalState = await graph.invoke(
 // await saveGraphPic(graph);
 console.log(finalState.messages[finalState.messages.length - 1].content);
 
-// const nextState = await graph.invoke({ messages: [new HumanMessage('Recommend me a song about it')] }, { configurable: { thread_id: '1' } });
-// console.log(nextState.messages[nextState.messages.length - 1].content);
+const nextState = await graph.invoke({ messages: [new HumanMessage('What is my name')] }, { configurable: { thread_id: '2' } });
+console.log(nextState.messages[nextState.messages.length - 1].content);
