@@ -1,5 +1,5 @@
 {
-    "name": "langgraphjs-studio-starter",
+    "name": "langgraph-starter",
     "scripts": {
         "start": "tsx src/agent.ts"
     },
