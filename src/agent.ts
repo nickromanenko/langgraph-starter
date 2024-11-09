@@ -5,6 +5,7 @@ import { tool } from '@langchain/core/tools';
 import { Annotation, END, MemorySaver, START, StateGraph } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
+import readlineSync from 'readline-sync';
 import { saveGraphPic } from 'utils';
 
 // Define the graph state
@@ -74,7 +75,7 @@ const workflow = new StateGraph(StateAnnotation)
 const checkpointer = new MemorySaver();
 export const graph = workflow.compile({ checkpointer, interruptBefore: ['askHuman'] });
 
-const input = { messages: [{ role: 'user', content: 'What part of the day is it now?' }] };
+const input = { messages: [{ role: 'user', content: 'Hey' }] };
 const config: any = {
     streamMode: 'values',
     configurable: {
@@ -89,7 +90,19 @@ for await (const chunk of await graph.stream(input, config)) {
 
 console.log('==Interrupted===');
 
-const userInput = 'What part of the day is it now? Recommend me a song about it';
+// const rl = Readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+// });
+// let userInput = '';
+// rl.question(`What is your question`, (answer: string) => {
+//     userInput = answer;
+//     rl.close();
+// });
+
+const userInput = readlineSync.question('What is your question?\n');
+
+// const userInput = 'What part of the day is it now? Recommend me a song about it';
 
 await graph.updateState(config, { messages: [{ role: 'user', content: userInput }] }, 'askHuman');
 
