@@ -5,6 +5,7 @@
     },
     "type": "module",
     "dependencies": {
+        "@langchain/anthropic": "^0.3.7",
         "@langchain/community": "^0.3.12",
         "@langchain/core": "^0.3.17",
         "@langchain/langgraph": "^0.2.20",
@@ -12,6 +13,7 @@
         "@langchain/openai": "^0.3.12",
         "dotenv": "^16.4.5",
         "langsmith": "^0.2.5",
+        "uuid": "^11.0.2",
         "zod": "^3.23.8",
         "zod-to-json-schema": "^3.23.5"
     },

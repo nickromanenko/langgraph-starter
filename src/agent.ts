@@ -2,8 +2,7 @@ import 'dotenv/config';
 
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
-import { Annotation, END, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
-import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
+import { Annotation, END, MemorySaver, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -39,7 +38,7 @@ const timeTool = tool(
 const tools = [timeTool];
 
 const model = new ChatOpenAI({
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
 }).bindTools(tools);
 
 const toolNode = new ToolNode(tools);
@@ -68,23 +67,23 @@ const workflow = new StateGraph(StateAnnotation)
     .addConditionalEdges('agent', routeModelOutput, ['tools', END])
     .addEdge('tools', 'agent');
 
-const checkpointer = PostgresSaver.fromConnString('postgres://postgres:postgres@localhost:5432/langchain');
-// You must call .setup() the first time you use the checkpointer:
-// await checkpointer.setup();
+const checkpointer = new MemorySaver();
 
 export const graph = workflow.compile({ checkpointer });
 
 const finalState = await graph.invoke(
-    { messages: [new HumanMessage('My name is Nick')] },
+    { messages: [new HumanMessage('What part of day is it now?')] },
     {
         configurable: {
-            thread_id: '2',
+            thread_id: '8',
         },
     },
 );
 
 // await saveGraphPic(graph);
-console.log(finalState.messages[finalState.messages.length - 1].content);
+console.log('User:', finalState.messages[finalState.messages.length - 2].content);
+console.log('Agent:', finalState.messages[finalState.messages.length - 1].content);
 
-const nextState = await graph.invoke({ messages: [new HumanMessage('What is my name')] }, { configurable: { thread_id: '2' } });
-console.log(nextState.messages[nextState.messages.length - 1].content);
+const nextState = await graph.invoke({ messages: [new HumanMessage('Recommend me a song about it')] }, { configurable: { thread_id: '8' } });
+console.log('User:', nextState.messages[nextState.messages.length - 2].content);
+console.log('Agent:', nextState.messages[nextState.messages.length - 1].content);
