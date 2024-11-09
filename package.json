@@ -8,6 +8,7 @@
         "@langchain/community": "^0.3.12",
         "@langchain/core": "^0.3.17",
         "@langchain/langgraph": "^0.2.20",
+        "@langchain/langgraph-checkpoint-postgres": "^0.0.2",
         "@langchain/openai": "^0.3.12",
         "dotenv": "^16.4.5",
         "langsmith": "^0.2.5",

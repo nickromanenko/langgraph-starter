@@ -2,7 +2,8 @@ import 'dotenv/config';
 
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
-import { Annotation, END, MemorySaver, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
+import { Annotation, END, MessagesAnnotation, StateGraph } from '@langchain/langgraph';
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -67,11 +68,13 @@ const workflow = new StateGraph(StateAnnotation)
     .addConditionalEdges('agent', routeModelOutput, ['tools', END])
     .addEdge('tools', 'agent');
 
-const checkpointer = new MemorySaver();
+const checkpointer = PostgresSaver.fromConnString('postgres://postgres:postgres@localhost:5432/langchain');
+// You must call .setup() the first time you use the checkpointer:
+// await checkpointer.setup();
 export const graph = workflow.compile({ checkpointer });
 
 const finalState = await graph.invoke(
-    { messages: [new HumanMessage('What part of the day is it now?')] },
+    { messages: [new HumanMessage('OK, recommend me another song about it')] },
     {
         configurable: {
             thread_id: '1',
@@ -82,5 +85,5 @@ const finalState = await graph.invoke(
 // await saveGraphPic(graph);
 console.log(finalState.messages[finalState.messages.length - 1].content);
 
-const nextState = await graph.invoke({ messages: [new HumanMessage('Recommend me a song about it')] }, { configurable: { thread_id: '1' } });
-console.log(nextState.messages[nextState.messages.length - 1].content);
+// const nextState = await graph.invoke({ messages: [new HumanMessage('Recommend me a song about it')] }, { configurable: { thread_id: '1' } });
+// console.log(nextState.messages[nextState.messages.length - 1].content);
